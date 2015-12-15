@@ -1763,8 +1763,8 @@ var convnetjs = convnetjs || { REVISION: 'ALPHA' };
       var end = new Date().getTime();
       var bwd_time = end - start;
 
-      if(this.regression && y.constructor !== Array)
-        console.log("Warning: a regression net requires an array as training output vector.");
+      //if(this.regression && y.constructor !== Array)
+      //  console.log("Warning: a regression net requires an array as training output vector.");
       
       this.k++;
       if(this.k % this.batch_size === 0) {

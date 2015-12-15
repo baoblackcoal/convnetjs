@@ -1,4 +1,5 @@
   var canvas, ctx;
+  var manualActionIdx = 0;
     
     // A 2D vector utility
     var Vec = function(x, y) {
@@ -151,32 +152,13 @@
         // tick the environment
         this.clock++;
         
-        // fix input to all agents based on environment
-        // process eyes
-        this.collpoints = [];
-        for(var i=0,n=this.agents.length;i<n;i++) {
-          var a = this.agents[i];
-          for(var ei=0,ne=a.eyes.length;ei<ne;ei++) {
-            var e = a.eyes[ei];
-            // we have a line from p to p->eyep
-            var eyep = new Vec(a.p.x + e.max_range * Math.sin(a.angle + e.angle),
-                               a.p.y + e.max_range * Math.cos(a.angle + e.angle));
-            var res = this.stuff_collide_(a.p, eyep, true, true);
-            if(res) {
-              // eye collided with wall
-              e.sensed_proximity = res.up.dist_from(a.p);
-              e.sensed_type = res.type;
-            } else {
-              e.sensed_proximity = e.max_range;
-              e.sensed_type = -1;
-            }
-          }
-        }
+
         
         // let the agents behave in the world based on their input
         for(var i=0,n=this.agents.length;i<n;i++) {
           this.agents[i].forward();
         }
+        console.log('rotate');
         
         // apply outputs of agents on evironment
         for(var i=0,n=this.agents.length;i<n;i++) {
@@ -217,7 +199,29 @@
           if(a.p.y<0)a.p.y=0;
           if(a.p.y>this.H)a.p.y=this.H;
         }
-        
+
+        // fix input to all agents based on environment
+        // process eyes
+        this.collpoints = [];
+        for(var i=0,n=this.agents.length;i<n;i++) {
+          var a = this.agents[i];
+          for(var ei=0,ne=a.eyes.length;ei<ne;ei++) {
+            var e = a.eyes[ei];
+            // we have a line from p to p->eyep
+            var eyep = new Vec(a.p.x + e.max_range * Math.sin(a.angle + e.angle),
+              a.p.y + e.max_range * Math.cos(a.angle + e.angle));
+            var res = this.stuff_collide_(a.p, eyep, true, true);
+            if(res) {
+              // eye collided with wall
+              e.sensed_proximity = res.up.dist_from(a.p);
+              e.sensed_type = res.type;
+            } else {
+              e.sensed_proximity = e.max_range;
+              e.sensed_type = -1;
+            }
+          }
+        }
+
         // tick all items
         var update_items = false;
         for(var i=0,n=this.items.length;i<n;i++) {
@@ -333,7 +337,9 @@
         }
         
         // get action from brain
-        var actionix = this.brain.forward(input_array);
+        //var actionix = this.brain.forward(input_array);
+        var actionix = manualActionIdx;
+        console.log('getKeyCode actionix=' + manualActionIdx); //a:97 s:115 d:100 f:102 space:32
         var action = this.actions[actionix];
         this.actionix = actionix; //back this up
         
@@ -368,7 +374,7 @@
         var reward = proximity_reward + forward_reward + digestion_reward;
         
         // pass to brain for learning
-        this.brain.backward(reward);
+        //this.brain.backward(reward);
       }
     }
     
@@ -432,8 +438,8 @@
       }
       ctx.stroke();
       
-      if(w.clock % 200 === 0) {
-        reward_graph.add(w.clock/200, b.average_reward_window.get_average());
+      if(w.clock % 2 === 0) {
+        reward_graph.add(w.clock/2, b.average_reward_window.get_average());
         var gcanvas = document.getElementById("graph_canvas");
         reward_graph.drawSelf(gcanvas);
       }
@@ -466,25 +472,30 @@
         
         // draw agents body
         ctx.beginPath();
-        ctx.arc(a.op.x, a.op.y, a.rad, 0, Math.PI*2, true); 
+        console.log('op x='+ a.op.x+' op y='+ a.op.y);
+        console.log('p x='+ a.p.x+' p y='+ a.p.y);
+        ctx.arc(a.p.x, a.p.y, a.rad, 0, Math.PI*2, true);
         ctx.fill();
         ctx.stroke();
         
         // draw agents sight
+        ctx.lineWidth = 5;
         for(var ei=0,ne=a.eyes.length;ei<ne;ei++) {
           var e = a.eyes[ei];
           var sr = e.sensed_proximity;
           if(e.sensed_type === -1 || e.sensed_type === 0) { 
             ctx.strokeStyle = "rgb(0,0,0)"; // wall or nothing
           }
+          if(e.sensed_type === 0) { ctx.strokeStyle = "rgb(0,0,255)"; } // apples
           if(e.sensed_type === 1) { ctx.strokeStyle = "rgb(255,150,150)"; } // apples
           if(e.sensed_type === 2) { ctx.strokeStyle = "rgb(150,255,150)"; } // poison
           ctx.beginPath();
-          ctx.moveTo(a.op.x, a.op.y);
-          ctx.lineTo(a.op.x + sr * Math.sin(a.oangle + e.angle),
-                     a.op.y + sr * Math.cos(a.oangle + e.angle));
+          ctx.moveTo(a.p.x, a.p.y);
+          ctx.lineTo(a.p.x + sr * Math.sin(a.angle + e.angle),
+                     a.p.y + sr * Math.cos(a.angle + e.angle));
           ctx.stroke();
         }
+        ctx.lineWidth = 1;
       }
       
       // draw items
@@ -494,7 +505,7 @@
         if(it.type === 1) ctx.fillStyle = "rgb(255, 150, 150)";
         if(it.type === 2) ctx.fillStyle = "rgb(150, 255, 150)";
         ctx.beginPath();
-        ctx.arc(it.p.x, it.p.y, it.rad, 0, Math.PI*2, true); 
+        ctx.arc(it.p.x, it.p.y, it.rad, 0, Math.PI*2, true);
         ctx.fill();
         ctx.stroke();
       }
@@ -520,8 +531,8 @@
       simspeed = 3;
     }
     function gofast() {
-      window.clearInterval(current_interval_id);
-      current_interval_id = setInterval(tick, 0);
+      //window.clearInterval(current_interval_id);
+      //current_interval_id = setInterval(tick, 0);
       skipdraw = false;
       simspeed = 2;
     }
@@ -575,4 +586,38 @@
       w.agents = [new Agent()];
       
       gofast();
+
+      tick();
+    }
+
+    function getKeyCode(e) {
+      var evt = e || window.event;
+      var keyCode = evt.keyCode || evt.which || evt.charCode;
+      console.log(keyCode); //a:97 s:100 d:115 f:102 e:101
+      //alert(keyCode);
+      switch(keyCode)
+      {
+        case 101:
+          manualActionIdx = 0;
+          break;
+       case 115:
+          manualActionIdx = 1;
+          break;
+       case 102:
+          manualActionIdx = 3;
+          break;
+       case 100:
+          manualActionIdx = 2;
+          break;
+       case 97:
+          manualActionIdx = 4;
+          break;
+        default :
+          console.log('default');
+          return;
+          break;
+      }
+      console.log('getKeyCode manualActionIdx=' + manualActionIdx); //a:97 s:115 d:100 f:102 space:32
+      tick();
+
     }
