@@ -1,7 +1,11 @@
   var canvas, ctx;
   var manualActionIdx = 0;
-    
-    // A 2D vector utility
+  var reward_sum = 0.0;
+  var reward_befor = 0.0;
+  var reward_avg = 0.0;
+
+
+  // A 2D vector utility
     var Vec = function(x, y) {
       this.x = x;
       this.y = y;
@@ -92,6 +96,11 @@
       this.walls = []; 
       var pad = 10;
       util_add_box(this.walls, pad, pad, this.W-pad*2, this.H-pad*2);
+      //var t0 = convnetjs.randf(0.5, 1);
+      //var t1 = convnetjs.randf(0.5, 1);
+      //var t2 = convnetjs.randf(0.5, 1);
+      //var t3 = convnetjs.randf(0.5, 1);
+      //util_add_box(this.walls, 100*t0, 100*t1, 200*t2, 300*t3); // inner walls
       util_add_box(this.walls, 100, 100, 200, 300); // inner walls
       this.walls.pop();
       util_add_box(this.walls, 400, 100, 200, 300);
@@ -263,7 +272,19 @@
         if(this.items.length < 30 && this.clock % 10 === 0 && convnetjs.randf(0,1)<0.25) {
           var newitx = convnetjs.randf(20, this.W-20);
           var newity = convnetjs.randf(20, this.H-20);
-          var newitt = convnetjs.randi(1, 3); // food or poison (1 and 2)
+          //var newitt = convnetjs.randi(1, 3); // food or poison (1 and 2)
+
+          var food_cnt=0, poison_cnt=0;
+          for(var i=0; i<this.items.length; i++){
+            if(this.items[i].type === 1)
+              food_cnt++;
+            else
+              poison_cnt++;
+          }
+          var newitt = 1;
+          if (food_cnt > poison_cnt)
+            newitt = 2;
+
           var newit = new Item(newitx, newity, newitt);
           this.items.push(newit);
         }
@@ -372,6 +393,18 @@
         this.digestion_signal = 0.0;
         
         var reward = proximity_reward + forward_reward + digestion_reward;
+
+        if(digestion_reward < -1 || digestion_reward > 1) {
+          reward_sum += w.clock*digestion_reward;
+          w.clock++;
+        }else{
+          reward_sum -= 0.01 *  w.clock;
+        }
+        reward_avg = reward_sum /  w.clock;
+        reward = reward_avg - reward_befor;
+        reward_befor = reward_avg;
+
+        //reward += reward_avg;
         
         // pass to brain for learning
         //this.brain.backward(reward);
@@ -439,7 +472,7 @@
       ctx.stroke();
       
       if(w.clock % 2 === 0) {
-        reward_graph.add(w.clock/2, b.average_reward_window.get_average());
+        reward_graph.add(w.clock/2, reward_avg);//b.average_reward_window.get_average());
         var gcanvas = document.getElementById("graph_canvas");
         reward_graph.drawSelf(gcanvas);
       }
@@ -498,17 +531,17 @@
         ctx.lineWidth = 1;
       }
       
-      // draw items
-      ctx.strokeStyle = "rgb(0,0,0)";
-      for(var i=0,n=w.items.length;i<n;i++) {
-        var it = w.items[i];
-        if(it.type === 1) ctx.fillStyle = "rgb(255, 150, 150)";
-        if(it.type === 2) ctx.fillStyle = "rgb(150, 255, 150)";
-        ctx.beginPath();
-        ctx.arc(it.p.x, it.p.y, it.rad, 0, Math.PI*2, true);
-        ctx.fill();
-        ctx.stroke();
-      }
+      //// draw items
+      //ctx.strokeStyle = "rgb(0,0,0)";
+      //for(var i=0,n=w.items.length;i<n;i++) {
+      //  var it = w.items[i];
+      //  if(it.type === 1) ctx.fillStyle = "rgb(255, 150, 150)";
+      //  if(it.type === 2) ctx.fillStyle = "rgb(150, 255, 150)";
+      //  ctx.beginPath();
+      //  ctx.arc(it.p.x, it.p.y, it.rad, 0, Math.PI*2, true);
+      //  ctx.fill();
+      //  ctx.stroke();
+      //}
       
       w.agents[0].brain.visSelf(document.getElementById('brain_info_div'));
     }
