@@ -209,27 +209,6 @@
           if(a.p.y>this.H)a.p.y=this.H;
         }
 
-        // fix input to all agents based on environment
-        // process eyes
-        this.collpoints = [];
-        for(var i=0,n=this.agents.length;i<n;i++) {
-          var a = this.agents[i];
-          for(var ei=0,ne=a.eyes.length;ei<ne;ei++) {
-            var e = a.eyes[ei];
-            // we have a line from p to p->eyep
-            var eyep = new Vec(a.p.x + e.max_range * Math.sin(a.angle + e.angle),
-              a.p.y + e.max_range * Math.cos(a.angle + e.angle));
-            var res = this.stuff_collide_(a.p, eyep, true, true);
-            if(res) {
-              // eye collided with wall
-              e.sensed_proximity = res.up.dist_from(a.p);
-              e.sensed_type = res.type;
-            } else {
-              e.sensed_proximity = e.max_range;
-              e.sensed_type = -1;
-            }
-          }
-        }
 
         // tick all items
         var update_items = false;
@@ -255,7 +234,7 @@
               }
             }
           }
-          
+
           if(it.age > 5000 && this.clock % 100 === 0 && convnetjs.randf(0,1)<0.1) {
             it.cleanup_ = true; // replace this one, has been around too long
             update_items = true;
@@ -269,6 +248,29 @@
           }
           this.items = nt; // swap
         }
+
+        // fix input to all agents based on environment
+        // process eyes
+        this.collpoints = [];
+        for(var i=0,n=this.agents.length;i<n;i++) {
+          var a = this.agents[i];
+          for(var ei=0,ne=a.eyes.length;ei<ne;ei++) {
+            var e = a.eyes[ei];
+            // we have a line from p to p->eyep
+            var eyep = new Vec(a.p.x + e.max_range * Math.sin(a.angle + e.angle),
+              a.p.y + e.max_range * Math.cos(a.angle + e.angle));
+            var res = this.stuff_collide_(a.p, eyep, true, true);
+            if(res) {
+              // eye collided with wall
+              e.sensed_proximity = res.up.dist_from(a.p);
+              e.sensed_type = res.type;
+            } else {
+              e.sensed_proximity = e.max_range;
+              e.sensed_type = -1;
+            }
+          }
+        }
+
         if(this.items.length < 30 && this.clock % 10 === 0 && convnetjs.randf(0,1)<0.25) {
           var newitx = convnetjs.randf(20, this.W-20);
           var newity = convnetjs.randf(20, this.H-20);
@@ -531,17 +533,17 @@
         ctx.lineWidth = 1;
       }
       
-      //// draw items
-      //ctx.strokeStyle = "rgb(0,0,0)";
-      //for(var i=0,n=w.items.length;i<n;i++) {
-      //  var it = w.items[i];
-      //  if(it.type === 1) ctx.fillStyle = "rgb(255, 150, 150)";
-      //  if(it.type === 2) ctx.fillStyle = "rgb(150, 255, 150)";
-      //  ctx.beginPath();
-      //  ctx.arc(it.p.x, it.p.y, it.rad, 0, Math.PI*2, true);
-      //  ctx.fill();
-      //  ctx.stroke();
-      //}
+      // draw items
+      ctx.strokeStyle = "rgb(0,0,0)";
+      for(var i=0,n=w.items.length;i<n;i++) {
+        var it = w.items[i];
+        if(it.type === 1) ctx.fillStyle = "rgb(255, 150, 150)";
+        if(it.type === 2) ctx.fillStyle = "rgb(150, 255, 150)";
+        ctx.beginPath();
+        ctx.arc(it.p.x, it.p.y, it.rad, 0, Math.PI*2, true);
+        ctx.fill();
+        ctx.stroke();
+      }
       
       w.agents[0].brain.visSelf(document.getElementById('brain_info_div'));
     }
@@ -628,21 +630,39 @@
       var keyCode = evt.keyCode || evt.which || evt.charCode;
       console.log(keyCode); //a:97 s:100 d:115 f:102 e:101
       //alert(keyCode);
+      //switch(keyCode)
+      //{
+      //  case 101:
+      //    manualActionIdx = 0;
+      //    break;
+      // case 115:
+      //    manualActionIdx = 1;
+      //    break;
+      // case 102:
+      //    manualActionIdx = 3;
+      //    break;
+      // case 100:
+      //    manualActionIdx = 2;
+      //    break;
+      // case 97:
+      //    manualActionIdx = 4;
+      //    break;
+      //  default :
+      //    console.log('default');
+      //    return;
+      //    break;
+      //}
       switch(keyCode)
       {
-        case 101:
+        case 115:
           manualActionIdx = 0;
           break;
-       case 115:
-          manualActionIdx = 1;
-          break;
-       case 102:
+
+        case 100:
           manualActionIdx = 3;
           break;
-       case 100:
-          manualActionIdx = 2;
-          break;
-       case 97:
+
+        case 97:
           manualActionIdx = 4;
           break;
         default :
